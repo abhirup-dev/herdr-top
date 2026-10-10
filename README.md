@@ -50,3 +50,7 @@ Protected processes can deny metrics. Process exit/start races can make a snapsh
 ## Implementation dependencies
 
 Core process data uses [`gopsutil/v4` v4.26.7](https://github.com/shirou/gopsutil). A Darwin-only, typed `rusage_info_v2` adapter uses [`purego` v0.10.2](https://github.com/ebitengine/purego) to read physical footprint without CGO. The terminal UI uses [`bubbletea` v1.3.10](https://github.com/charmbracelet/bubbletea). Versions are pinned in `go.mod`; see `THIRD_PARTY_NOTICES.md`.
+
+## Issue tracking
+
+Use Beads (`bd`) for project tickets. See [the issue-tracking guide](.beads/README.md) for commands and public-history sync; avoid putting private data in tickets.
