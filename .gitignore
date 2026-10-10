@@ -1,0 +1,6 @@
+/bin/
+/herdr-top
+*.test
+coverage.out
+.pi/
+.DS_Store
