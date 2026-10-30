@@ -27,15 +27,41 @@ herdr-top --json --sample 750ms   # one scriptable snapshot
 herdr-top --help
 ```
 
-Interactive keys: arrows or `j`/`k` move; `m`, `c`, `i`, and `o` sort by memory, CPU, cumulative I/O, and age; `r` refreshes; Enter focuses the exact mapped Herdr agent pane; `q` quits. Focus waits for and displays server failures. It does not raise a macOS terminal window.
+Interactive keys: arrows or `j`/`k` move; `m`, `c`, and `o` sort by memory, CPU, and age; `r` refreshes; `p` pauses or resumes watch mode; Enter focuses the exact mapped Herdr agent pane; `q` quits. Focus waits for and displays server failures, switches the attached client to the pane's tab, and raises the session's Ghostty window when one is attached.
+
+The interactive view refreshes automatically: the next collection starts `--interval` (default `2s`) after the previous one finishes. `--interval 0` disables watch mode. `--list` and `--json` always print one snapshot.
+
+## Herdr popup plugin
+
+The repository is also a Herdr workflow plugin (`herdr-plugin.toml`, Herdr 0.8.0 or later). It uses Herdr's native plugin popup, not a pane or zoom workaround. The popup runs `herdr-top --quit-on-focus`: Enter focuses the selected agent pane and closes the popup; `q` closes it. Closing only ends the popup's own `herdr-top` process.
+
+```sh
+herdr plugin link "$PWD" && make build    # link does not run build commands
+herdr plugin action invoke herdr-top.open # smoke test
+herdr plugin unlink herdr-top             # uninstall
+```
+
+Bind a key in `~/.config/herdr/config.toml`, then run `herdr server reload-config`:
+
+```toml
+[[keys.command]]
+key = "prefix+t"  # free in Herdr 0.9.3 defaults; prefix+shift+t is rename_tab
+type = "plugin_action"
+command = "herdr-top.open"
+```
+
+This is a local plugin. Listing it as an official Herdr plugin depends on upstream acceptance.
 
 ## Metric definitions
 
 - **FOOT** is Darwin `ri_phys_footprint`, summed across the agent process tree. It is physical footprint, not RSS.
 - **RSS** is current resident size, shown separately and summed across the tree.
 - **CPU%** is `(change in cumulative user + system CPU time) / the process's matching observation interval × 100`, summed across the tree. One fully busy core is approximately 100%; multi-process trees can exceed 100%. It is never a lifetime average.
-- **DISKΣ** is cumulative bytes read plus written from Darwin's `DiskReadBytes` and `DiskWriteBytes`, summed across the tree. It is not a current transfer rate and does not use gopsutil's generic byte fields.
 - **AGE** is time since process start.
+- **NAME** is the pane's Herdr label (`herdr pane rename`); otherwise the dimmed title Herdr derives from the pane (for Claude, its session title).
+- **AGENT** is the Herdr agent name (`herdr agent rename`), blank when unset.
+
+Cumulative disk bytes (read plus written, from Darwin's `DiskReadBytes` and `DiskWriteBytes`, summed across the tree) are only in `--json` as `tree_cumulative_disk_bytes`; lifetime totals for long-running agents are too large to be useful in the table.
 
 A dash (`—`) means unavailable. Permission errors, process races, and incomplete tree metrics remain unavailable with diagnostics rather than becoming zero. JSON includes a `valid` flag and error text.
 

@@ -20,6 +20,12 @@ type Location struct {
 	Workspace string `json:"workspace,omitempty"`
 	Tab       string `json:"tab,omitempty"`
 	Pane      string `json:"pane,omitempty"`
+	// PaneLabel is set by `herdr pane rename`; PaneTitle is the title Herdr
+	// derives from the pane's program (for Claude, its session title).
+	PaneLabel string `json:"pane_label,omitempty"`
+	PaneTitle string `json:"pane_title,omitempty"`
+	// AgentName is set by `herdr agent rename`.
+	AgentName string `json:"agent_name,omitempty"`
 	State     string `json:"state,omitempty"`
 	CWD       string `json:"cwd,omitempty"`
 }

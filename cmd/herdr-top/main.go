@@ -42,12 +42,14 @@ func run(args []string, stdout, stderr io.Writer) error {
 	fs.SetOutput(stderr)
 	jsonOut := fs.Bool("json", false, "print one JSON snapshot and exit")
 	listOut := fs.Bool("list", false, "print one table snapshot and exit")
-	sortName := fs.String("sort", "memory", "sort by memory, cpu, io, or age")
+	sortName := fs.String("sort", "memory", "sort by memory, cpu, or age")
 	sample := fs.Duration("sample", 500*time.Millisecond, "CPU sample interval (must be positive)")
+	interval := fs.Duration("interval", 2*time.Second, "interactive watch: wait between refreshes (0 disables)")
+	quitOnFocus := fs.Bool("quit-on-focus", false, "exit after a successful Enter focus (used by the Herdr popup)")
 	showVersion := fs.Bool("version", false, "print version and exit")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, "Usage: herdr-top [--list|--json] [--sort memory|cpu|io|age] [--sample 500ms]")
-		fmt.Fprintln(stderr, "\nInteractive by default. Keys: j/k move, m/c/i/o sort, r refresh, Enter focus, q quit.")
+		fmt.Fprintln(stderr, "Usage: herdr-top [--list|--json] [--sort memory|cpu|age] [--sample 500ms] [--interval 2s] [--quit-on-focus]")
+		fmt.Fprintln(stderr, "\nInteractive by default. Keys: j/k move, m/c/o sort, r refresh, p pause watch, Enter focus, q quit.")
 		fs.PrintDefaults()
 	}
 	if err := fs.Parse(args); err != nil {
@@ -73,9 +75,12 @@ func run(args []string, stdout, stderr io.Writer) error {
 	if *sample <= 0 {
 		return errors.New("--sample must be positive")
 	}
+	if *interval < 0 {
+		return errors.New("--interval must not be negative")
+	}
 	ctx := context.Background()
 	c := collector.New()
-	h := herdrclient.Client{Runner: herdrclient.ExecRunner{}}
+	h := herdrclient.Client{Runner: herdrclient.ExecRunner{}, RevealWindow: herdrclient.RevealGhostty}
 	snapshot := collect(ctx, c, h, *sample)
 	if *jsonOut {
 		enc := json.NewEncoder(stdout)
@@ -101,7 +106,8 @@ func run(args []string, stdout, stderr io.Writer) error {
 	}
 	refresh := func(ctx context.Context) model.Snapshot { return collect(ctx, c, h, *sample) }
 	focus := func(ctx context.Context, loc model.Location) error { return h.Focus(ctx, loc) }
-	m := ui.New(snapshot, refresh, focus)
+	m := ui.New(snapshot, refresh, focus, *interval)
+	m.QuitOnFocus = *quitOnFocus
 	_, err = tea.NewProgram(m, tea.WithAltScreen(), tea.WithOutput(stdout)).Run()
 	return err
 }

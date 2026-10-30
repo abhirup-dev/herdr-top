@@ -14,7 +14,6 @@ type Sort string
 const (
 	SortMemory Sort = "memory"
 	SortCPU    Sort = "cpu"
-	SortIO     Sort = "io"
 	SortAge    Sort = "age"
 )
 
@@ -24,12 +23,10 @@ func ParseSort(s string) (Sort, error) {
 		return SortMemory, nil
 	case "cpu":
 		return SortCPU, nil
-	case "io", "disk":
-		return SortIO, nil
 	case "age":
 		return SortAge, nil
 	default:
-		return "", fmt.Errorf("unknown sort %q (use memory, cpu, io, or age)", s)
+		return "", fmt.Errorf("unknown sort %q (use memory, cpu, or age)", s)
 	}
 }
 func Records(in []model.Record, by Sort) []model.Record {
@@ -39,8 +36,6 @@ func Records(in []model.Record, by Sort) []model.Record {
 		switch by {
 		case SortCPU:
 			return validFloatLess(a.TreeCPUPercent, b.TreeCPUPercent)
-		case SortIO:
-			return validLess(a.TreeDiskBytes, b.TreeDiskBytes)
 		case SortAge:
 			return a.Age > b.Age
 		default:
@@ -96,10 +91,10 @@ func Age(d time.Duration) string {
 		return "—"
 	}
 	if d >= 24*time.Hour {
-		return fmt.Sprintf("%dd%dh", int(d/(24*time.Hour)), int(d/time.Hour)%24)
+		return fmt.Sprintf("%dd %dh", int(d/(24*time.Hour)), int(d/time.Hour)%24)
 	}
 	if d >= time.Hour {
-		return fmt.Sprintf("%dh%02dm", int(d/time.Hour), int(d/time.Minute)%60)
+		return fmt.Sprintf("%dh %02dm", int(d/time.Hour), int(d/time.Minute)%60)
 	}
 	return fmt.Sprintf("%dm", int(d/time.Minute))
 }
@@ -116,16 +111,64 @@ func Clip(s string, n int) string {
 	}
 	return string(r[:n-1]) + "…"
 }
-func Row(r model.Record) string {
-	sess, pane, state := "outside", "—", "—"
-	if r.Location != nil {
-		sess, pane, state = r.Location.Session, r.Location.Pane, r.Location.State
+
+// Column widths; negative means left-aligned. Shared by the plain and styled tables.
+var Widths = []int{6, -8, 6, 7, 7, 7, -10, -8, -26, -24}
+
+var headers = []string{"PID", "KIND", "CPU%", "FOOT", "RSS", "AGE", "SESSION", "STATE", "NAME", "AGENT"}
+
+// Column indexes into Cells, Headers, and Widths.
+const (
+	ColPID = iota
+	ColKind
+	ColCPU
+	ColFoot
+	ColRSS
+	ColAge
+	ColSession
+	ColState
+	ColName
+	ColAgent
+)
+
+// Cells returns the unpadded display values of a record, one per column.
+func Cells(r model.Record) []string {
+	sess, state, name, agent := "outside", "—", "", ""
+	if l := r.Location; l != nil {
+		sess, state, name, agent = l.Session, l.State, l.PaneLabel, l.AgentName
+		if name == "" {
+			name = l.PaneTitle
+		}
 	}
-	return fmt.Sprintf("%6d %-8s %6s %7s %7s %7s %7s %-10s %-12s %-7s", r.PID, r.Kind, CPU(r.TreeCPUPercent), Bytes(r.TreeFootprintBytes), Bytes(r.TreeRSSBytes), Bytes(r.TreeDiskBytes), Age(r.Age), sess, pane, state)
+	return []string{fmt.Sprint(r.PID), r.Kind, CPU(r.TreeCPUPercent), Bytes(r.TreeFootprintBytes), Bytes(r.TreeRSSBytes), Age(r.Age), sess, state, name, agent}
 }
-func Header() string {
-	return fmt.Sprintf("%6s %-8s %6s %7s %7s %7s %7s %-10s %-12s %-7s", "PID", "KIND", "CPU%", "FOOT", "RSS", "DISKΣ", "AGE", "SESSION", "PANE", "STATE")
+func Headers() []string { return append([]string(nil), headers...) }
+
+// Pad aligns s to column i's width, clipping text that would overflow it.
+func Pad(s string, i int) string {
+	return fmt.Sprintf("%*s", Widths[i], Clip(s, max(Widths[i], -Widths[i])))
 }
+
+// SortColumn is the column a sort orders by.
+func SortColumn(by Sort) int {
+	switch by {
+	case SortCPU:
+		return ColCPU
+	case SortAge:
+		return ColAge
+	default:
+		return ColFoot
+	}
+}
+func join(cells []string) string {
+	out := make([]string, len(cells))
+	for i, c := range cells {
+		out[i] = Pad(c, i)
+	}
+	return strings.Join(out, " ")
+}
+func Row(r model.Record) string { return join(Cells(r)) }
+func Header() string            { return join(headers) }
 func Diagnostics(r model.Record) string {
 	var d []string
 	if !r.TreeCPUPercent.Valid {
@@ -136,9 +179,6 @@ func Diagnostics(r model.Record) string {
 	}
 	if !r.TreeRSSBytes.Valid {
 		d = append(d, "RSS: "+r.TreeRSSBytes.Error)
-	}
-	if !r.TreeDiskBytes.Valid {
-		d = append(d, "disk: "+r.TreeDiskBytes.Error)
 	}
 	d = append(d, r.Diagnostics...)
 	return strings.Join(d, "; ")

@@ -1,0 +1,26 @@
+id = "herdr-top"
+name = "herdr-top"
+version = "0.1.0"
+min_herdr_version = "0.8.0"
+description = "Local macOS resource monitor for coding agents in Herdr sessions, opened as a popup."
+platforms = ["macos"]
+
+# `plugin link` does not run build commands; run `make build` after linking.
+[[build]]
+command = ["go", "build", "-trimpath", "-o", "bin/herdr-top", "./cmd/herdr-top"]
+
+[[actions]]
+id = "open"
+title = "Open herdr-top"
+description = "Popup agent resource monitor. Enter focuses the pane and closes; q closes."
+contexts = ["global"]
+command = ["sh", "scripts/open-popup.sh"]
+
+# The popup closes when herdr-top exits: q, or a successful Enter focus.
+[[panes]]
+id = "popup"
+title = "herdr-top"
+placement = "popup"
+width = "90%"
+height = "80%"
+command = ["./bin/herdr-top", "--quit-on-focus"]
