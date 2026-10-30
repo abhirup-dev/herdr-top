@@ -11,3 +11,6 @@ coverage.out
 .beads-credential-key
 .beads/proxieddb/
 *.gate.lock*
+
+# Written by herdr-app into the installed mod folder
+mod/gpui-kit.d.ts

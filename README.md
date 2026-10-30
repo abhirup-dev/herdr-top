@@ -52,6 +52,20 @@ command = "herdr-top.open"
 
 This is a local plugin. Listing it as an official Herdr plugin depends on upstream acceptance.
 
+## Herdr desktop app mod
+
+`mod/` is the same monitor as a native dialog for the Herdr desktop app. The Go binary does the collecting (`herdr-top --json --hc`: agents found through herdr-core `hc`, focus through `herdr-app`), and `mod/main.js` draws it with gpui-kit and joins each row to the app's live agents list.
+
+```sh
+make install GOBIN="$HOME/.local/bin"   # the mod runs `herdr-top` from PATH
+make install-mod                        # symlinks mod/ into ~/.config/herdr-app/mods/herdr-top
+herdr-app check ~/.config/herdr-app/mods/herdr-top
+```
+
+Open it with `herdr-app do mod.open --name herdr-top`, or bind a key in `~/.config/herdr-app/keys.json` (`mod/keys.json` suggests `cmd-shift-t`). Keys: arrows or `j`/`k` move; `m`, `c`, `o` sort; `r` refreshes; `p` pauses; Enter or a double-click goes to the agent's terminal (`agent.focus`) and closes; `q` or Esc closes. Rows without a Herdr terminal show `outside`. The mod is plain JavaScript checked against the app's generated types (`npx -p typescript tsc -p mod/jsconfig.json`); the app only loads `main.js`, so there is no build step.
+
+`--hc` also works for the TUI and `--list`: `herdr-top --hc`.
+
 ## Metric definitions
 
 - **FOOT** is Darwin `ri_phys_footprint`, summed across the agent process tree. It is physical footprint, not RSS.

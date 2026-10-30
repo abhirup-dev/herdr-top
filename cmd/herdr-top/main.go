@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/abhirup-dev/herdr-top/internal/collector"
+	"github.com/abhirup-dev/herdr-top/internal/hc"
 	herdrclient "github.com/abhirup-dev/herdr-top/internal/herdr"
 	"github.com/abhirup-dev/herdr-top/internal/model"
 	"github.com/abhirup-dev/herdr-top/internal/present"
@@ -20,7 +21,14 @@ import (
 
 var version = "dev"
 
-func collect(ctx context.Context, c *collector.Collector, h herdrclient.Client, window time.Duration) model.Snapshot {
+// locator finds agent launcher processes and focuses an agent: the old herdr
+// TUI (internal/herdr) or herdr-core plus the Herdr desktop app (internal/hc).
+type locator interface {
+	Locate(context.Context) (map[int32]model.AgentRoot, []string)
+	Focus(context.Context, model.Location) error
+}
+
+func collect(ctx context.Context, c *collector.Collector, h locator, window time.Duration) model.Snapshot {
 	roots, d := h.Locate(ctx)
 	kinds := make(map[int32]string, len(roots))
 	for pid, root := range roots {
@@ -46,9 +54,10 @@ func run(args []string, stdout, stderr io.Writer) error {
 	sample := fs.Duration("sample", 500*time.Millisecond, "CPU sample interval (must be positive)")
 	interval := fs.Duration("interval", 2*time.Second, "interactive watch: wait between refreshes (0 disables)")
 	quitOnFocus := fs.Bool("quit-on-focus", false, "exit after a successful Enter focus (used by the Herdr popup)")
+	useHC := fs.Bool("hc", false, "find agents through herdr-core (hc) and focus through the Herdr desktop app instead of the herdr TUI")
 	showVersion := fs.Bool("version", false, "print version and exit")
 	fs.Usage = func() {
-		fmt.Fprintln(stderr, "Usage: herdr-top [--list|--json] [--sort memory|cpu|age] [--sample 500ms] [--interval 2s] [--quit-on-focus]")
+		fmt.Fprintln(stderr, "Usage: herdr-top [--list|--json] [--sort memory|cpu|age] [--sample 500ms] [--interval 2s] [--quit-on-focus] [--hc]")
 		fmt.Fprintln(stderr, "\nInteractive by default. Keys: j/k move, m/c/o sort, r refresh, p pause watch, Enter focus, q quit.")
 		fs.PrintDefaults()
 	}
@@ -80,7 +89,10 @@ func run(args []string, stdout, stderr io.Writer) error {
 	}
 	ctx := context.Background()
 	c := collector.New()
-	h := herdrclient.Client{Runner: herdrclient.ExecRunner{}, RevealWindow: herdrclient.RevealGhostty}
+	var h locator = herdrclient.Client{Runner: herdrclient.ExecRunner{}, RevealWindow: herdrclient.RevealGhostty}
+	if *useHC {
+		h = hc.Client{Run: hc.Exec}
+	}
 	snapshot := collect(ctx, c, h, *sample)
 	if *jsonOut {
 		enc := json.NewEncoder(stdout)

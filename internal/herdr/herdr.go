@@ -217,9 +217,9 @@ func (c Client) Locate(ctx context.Context) (map[int32]model.AgentRoot, []string
 				cwd = a.ForegroundCWD
 			}
 			loc := model.Location{Session: s.Name, Workspace: labels[a.Workspace], Tab: a.Tab, Pane: a.Pane, PaneLabel: paneLabels[a.Pane], PaneTitle: a.Title, AgentName: a.Name, State: a.Status, CWD: cwd}
-			kind := normalizeAgentKind(a.Agent)
+			kind := NormalizeAgentKind(a.Agent)
 			if kind == "" {
-				kind = normalizeAgentKind(a.DisplayAgent)
+				kind = NormalizeAgentKind(a.DisplayAgent)
 			}
 			pid, ok := launcherRoot(pi.Result.ProcessInfo.ForegroundProcessGroupID, pi.Result.ProcessInfo.Foreground, kind)
 			if !ok {
@@ -229,9 +229,9 @@ func (c Client) Locate(ctx context.Context) (map[int32]model.AgentRoot, []string
 			if kind == "" {
 				for _, p := range pi.Result.ProcessInfo.Foreground {
 					if p.PID == pid {
-						kind = normalizeAgentKind(p.Name)
+						kind = NormalizeAgentKind(p.Name)
 						if kind == "" {
-							kind = normalizeAgentKind(p.Argv0)
+							kind = NormalizeAgentKind(p.Argv0)
 						}
 					}
 				}
@@ -271,7 +271,7 @@ func launcherRoot(groupID *int32, processes []struct {
 	}
 	var match int32
 	for _, p := range processes {
-		if normalizeAgentKind(p.Name) != kind && normalizeAgentKind(p.Argv0) != kind {
+		if NormalizeAgentKind(p.Name) != kind && NormalizeAgentKind(p.Argv0) != kind {
 			continue
 		}
 		if match != 0 {
@@ -282,7 +282,7 @@ func launcherRoot(groupID *int32, processes []struct {
 	return match, match > 0
 }
 
-func normalizeAgentKind(name string) string {
+func NormalizeAgentKind(name string) string {
 	name = strings.ToLower(strings.TrimSpace(name))
 	if i := strings.LastIndexAny(name, `/\\`); i >= 0 {
 		name = name[i+1:]
