@@ -2,7 +2,8 @@
 // herdr-top for the Herdr desktop app: a popup (like the picker) listing each
 // agent in this window with its whole process tree's CPU%, physical footprint,
 // RSS and age, collected by the Go `herdr-top` binary (`herdr-top --json --hc`)
-// and joined to the live agents list. Type to filter, click a column to sort,
+// and joined to the live agents list. Type to filter, click a column to sort
+// (again to flip the direction),
 // ↑/↓ to move, Enter or a click goes to the agent's terminal, Esc closes.
 import { View, div, svg, image } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
@@ -57,6 +58,7 @@ export default class HerdrTop extends View {
     /** @type {Snapshot | null} */
     this.snapshot = null;
     this.sort = "memory";
+    this.desc = true;
     this.at = 0;
     this.busy = false;
     this.error = null;
@@ -97,11 +99,13 @@ export default class HerdrTop extends View {
     return (this.snapshot?.records ?? [])
       .map((r) => ({ r, a: r.location && live[r.location.session] }))
       .filter(({ a, r }) => a && (!f || [a.space_name, a.tab_name, a.program?.name, r.kind, a.address, a.title].join(" ").toLowerCase().includes(f)))
-      .sort((x, y) => SORTS[this.sort](x.r, y.r));
+      // Tie-break by address so near-equal values don't reshuffle every refresh.
+      .sort((x, y) => (SORTS[this.sort](x.r, y.r) || x.a.address.localeCompare(y.a.address)) * (this.desc ? 1 : -1));
   }
 
   go(row) {
-    if (!row) return;
+    if (!row || this.closing) return; // a double-click fires on_click twice
+    this.closing = true;
     this.close();
     run("agent.focus", { terminal: row.a.address });
   }
@@ -131,17 +135,17 @@ export default class HerdrTop extends View {
       .child(div().flex_1().child("Agent"))
       .children(COLS.map((c) => {
         const on = c.sort === this.sort;
-        return div().id(`sort-${c.sort}`).w(c.w).flex_none().text_right().cursor_pointer()
+        return h_flex().id(`sort-${c.sort}`).w(c.w).h_full().flex_none().justify_end().items_center().cursor_pointer()
           .text_color(on ? t.foreground : t.dim).hover((s) => s.text_color(t.foreground))
-          .on_click((_e, cx) => { this.sort = c.sort; cx.notify(); })
-          .child(on ? `${c.label} ▾` : c.label);
+          .on_click((_e, cx) => { this.desc = on ? !this.desc : true; this.sort = c.sort; cx.stop_propagation(); cx.notify(); })
+          .child(on ? `${c.label} ${this.desc ? "▾" : "▴"}` : c.label);
       }));
 
     const row = ({ r, a }, i) => {
       const on = i === this.at;
       const pic = icon(a.program, 14, t.foreground);
       return h_flex()
-        .id(`row-${a.address}`)
+        .id(`row-${i}`)
         .mx(4).px(10).h(32).rounded(7).gap(10).items_center().cursor_pointer()
         .when(on, (el) => el.bg(t.hover))
         .hover((s) => s.bg(t.hover))
