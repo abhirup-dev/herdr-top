@@ -62,7 +62,7 @@ make install-mod                        # symlinks mod/ into ~/.config/herdr-app
 herdr-app check ~/.config/herdr-app/mods/herdr-top
 ```
 
-Open it with `herdr-app do mod.open --name herdr-top`, or bind a key in `~/.config/herdr-app/keys.json` (`mod/keys.json` suggests `cmd-shift-t`). Keys: arrows or `j`/`k` move; `m`, `c`, `o` sort; `r` refreshes; `p` pauses; Enter or a double-click goes to the agent's terminal (`agent.focus`) and closes; `q` or Esc closes. Rows without a Herdr terminal show `outside`. The mod is plain JavaScript checked against the app's generated types (`npx -p typescript tsc -p mod/jsconfig.json`); the app only loads `main.js`, so there is no build step.
+Open it with `herdr-app do mod.open --name herdr-top`, or bind a key in `~/.config/herdr-app/keys.json` (`mod/keys.json` suggests `cmd-shift-t`). It is a popup like the app's picker: type to filter (space, tab, program, terminal), click a column header to sort (CPU, footprint, RSS, age), ↑/↓ then Enter or a click goes to the agent's terminal (`agent.focus`) and closes, Esc closes. It refreshes every 2 s and lists only agents in this window; agents outside Herdr are left out. The mod is plain JavaScript checked against the app's generated types (`npx -p typescript tsc -p mod/jsconfig.json`); the app only loads `main.js`, so there is no build step.
 
 `--hc` also works for the TUI and `--list`: `herdr-top --hc`.
 
