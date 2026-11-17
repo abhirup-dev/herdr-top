@@ -13,4 +13,4 @@ coverage.out
 *.gate.lock*
 
 # Written by herdr-app into the installed mod folder
-mod/gpui-kit.d.ts
+mods/herdr-top/gpui-kit.d.ts

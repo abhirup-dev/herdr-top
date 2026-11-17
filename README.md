@@ -33,15 +33,15 @@ The interactive view refreshes automatically: the next collection starts `--inte
 
 ## Herdr desktop app mod
 
-`mod/` is the same monitor as a native dialog for the Herdr desktop app. The Go binary does the collecting (`herdr-top --json --hc`: agents found through herdr-core `hc`, focus through `herdr-app`), and `mod/main.js` draws it with gpui-kit and joins each row to the app's live agents list.
+`mods/herdr-top/` is the same monitor as a native dialog for the Herdr desktop app. The Go binary does the collecting (`herdr-top --json --hc`: agents found through herdr-core `hc`, focus through `herdr-app`), and `mods/herdr-top/main.js` draws it with gpui-kit and joins each row to the app's live agents list.
 
 ```sh
 make install GOBIN="$HOME/.local/bin"   # the mod runs `herdr-top` from PATH
-make install-mod                        # symlinks mod/ into ~/.config/herdr-app/mods/herdr-top
+make install-mod                        # links mods/herdr-top into ~/.config/herdr-app/mods (uninstall-mod removes it)
 herdr-app check ~/.config/herdr-app/mods/herdr-top
 ```
 
-Open it with `herdr-app do mod.open --name herdr-top`, or bind a key in `~/.config/herdr-app/keys.json` (`mod/keys.json` suggests `cmd-shift-t`). It is a popup like the app's picker: type to filter (space, tab, program, terminal), click a column header to sort (CPU, footprint, RSS, age; again to flip the direction), ↑/↓ then Enter or a click goes to the agent's terminal (`agent.focus`) and closes, Esc closes. It refreshes every 2 s and lists only agents in this window; agents outside Herdr are left out. The mod is plain JavaScript checked against the app's generated types (`npx -p typescript tsc -p mod/jsconfig.json`); the app only loads `main.js`, so there is no build step.
+Open it with `herdr-app do mod.open --name herdr-top`, or bind a key in `~/.config/herdr-app/keys.json` (`keys.json` suggests `cmd-shift-t`). It is a popup like the app's picker: type to filter (space, tab, program, terminal), click a column header to sort (CPU, footprint, RSS, age; again to flip the direction), ↑/↓ then Enter or a click goes to the agent's terminal (`agent.focus`) and closes, Esc closes. It refreshes every 2 s and lists only agents in this window; agents outside Herdr are left out. The mod is plain JavaScript checked against the app's generated types (`npx -p typescript tsc -p mods/herdr-top/jsconfig.json`); the app only loads `main.js`, so there is no build step.
 
 `--hc` also works for the TUI and `--list`: `herdr-top --hc`.
 
