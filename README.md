@@ -31,27 +31,6 @@ Interactive keys: arrows or `j`/`k` move; `m`, `c`, and `o` sort by memory, CPU,
 
 The interactive view refreshes automatically: the next collection starts `--interval` (default `2s`) after the previous one finishes. `--interval 0` disables watch mode. `--list` and `--json` always print one snapshot.
 
-## Herdr popup plugin
-
-The repository is also a Herdr workflow plugin (`herdr-plugin.toml`, Herdr 0.8.0 or later). It uses Herdr's native plugin popup, not a pane or zoom workaround. The popup runs `herdr-top --quit-on-focus`: Enter focuses the selected agent pane and closes the popup; `q` closes it. Closing only ends the popup's own `herdr-top` process.
-
-```sh
-herdr plugin link "$PWD" && make build    # link does not run build commands
-herdr plugin action invoke herdr-top.open # smoke test
-herdr plugin unlink herdr-top             # uninstall
-```
-
-Bind a key in `~/.config/herdr/config.toml`, then run `herdr server reload-config`:
-
-```toml
-[[keys.command]]
-key = "prefix+t"  # free in Herdr 0.9.3 defaults; prefix+shift+t is rename_tab
-type = "plugin_action"
-command = "herdr-top.open"
-```
-
-This is a local plugin. Listing it as an official Herdr plugin depends on upstream acceptance.
-
 ## Herdr desktop app mod
 
 `mod/` is the same monitor as a native dialog for the Herdr desktop app. The Go binary does the collecting (`herdr-top --json --hc`: agents found through herdr-core `hc`, focus through `herdr-app`), and `mod/main.js` draws it with gpui-kit and joins each row to the app's live agents list.
